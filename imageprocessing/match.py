@@ -1,8 +1,9 @@
 import cv2
 import numpy as np
-from utils import cvimage_to_pygame, clamp, group_points, get_distance
+from utils import cvimage_to_pygame, clamp, group_points, get_distance, checkmousebox
 import pygame
 from regression import line, isNaN, intersection
+from interfacetools.label import label 
 
 '''
 1. select region
@@ -25,19 +26,22 @@ class match:
 		self.selected=False
 		self.template=None
 		
-		self.match_locations=[]
-		self.miss_locations=[]
+		self.labels=[]
+		
 		self.lines=[]#line(self.world, x, y, [1,2,3], [1,2,3])
 		self.intersections=[]
 		
+		self.selectmultibox=True
+		
 	def reset(self):
-		self.match_locations=[]
+		self.lables=[]
 		self.selecting=False
 		self.selectbox=[0,0,0,0]
 		self.selected=False
 		self.template=None
 		self.lines=[]
 		self.intersections=[]
+		self.selectmultibox=True
 		
 	def update(self):
 		try:
@@ -45,14 +49,18 @@ class match:
 		except:
 			return
 		
-		if (self.x<self.world.mouse_x<self.x+self.width
-		   and self.y<self.world.mouse_y<self.y+self.height):
-			if self.world.mouse_left_down:
-				self.selectbox[0]=self.world.mouse_x
-				self.selectbox[1]=self.world.mouse_y
-				self.selecting=True
-				self.selected=False
-				self.lines=[]
+		if self.selectmultibox:
+			if (self.x<self.world.mouse_x<self.x+self.width
+			   and self.y<self.world.mouse_y<self.y+self.height):
+				if self.world.mouse_left_down:
+					self.selectbox[0]=self.world.mouse_x
+					self.selectbox[1]=self.world.mouse_y
+					self.selecting=True
+					self.selected=False
+					self.lines=[]
+					self.intersections=[]
+					#self.miss_locations=[]
+					self.labels=[]
 				
 		if self.selecting:
 			self.selectbox[2]=clamp(self.world.mouse_x-self.selectbox[0],self.x-self.selectbox[0],self.x+self.width-self.selectbox[0])
@@ -61,6 +69,7 @@ class match:
 			
 			if self.world.mouse_left_up:
 				self.selecting=False
+				self.selectmultibox=False
 				if abs(self.selectbox[2])>0 and abs(self.selectbox[3])>0:
 					self.selected=True
 				else:
@@ -75,10 +84,14 @@ class match:
 				
 				# create threshold from min val, find where sqdiff is less than thresh
 				min_thresh = .9# (min_val + 1e-6) * 1.5
-				self.match_locations = np.where(res >= min_thresh)
+				match_locations = np.where(res >= min_thresh)
 				
-				self.match_locations = (np.array(self.match_locations).T).tolist()
-				self.match_locations = group_points(self.match_locations,10)
+				match_locations = (np.array(match_locations).T).tolist()
+				match_locations = group_points(match_locations,10)
+				for m in match_locations:
+					l=label(self.world,self,m[1],m[0],self.selectbox[2],self.selectbox[3],"match",(0,255,0))
+					self.labels.append(l)
+					
 				#print(self.match_locations)
 				
 				
@@ -101,17 +114,9 @@ class match:
 			
 		
 	def predict_missing_boxes(self):
-		#self.miss_locations=[]
-		distance=15
-		#print("predicting missing")
-
-		#xx = np.array(self.match_locations).T[0]
-		#yy = np.array(self.match_locations).T[1]
-		
-		
-		for p in self.match_locations:
-			x=p[1]
-			y=p[0]
+		for p in self.labels:
+			x=p.x
+			y=p.y
 			#print(str(x)+","+str(y))
 			hline = line(self.world, self.x, self.y, [x,x+10], [y,y])
 			vline = line(self.world, self.x, self.y, [x,x], [y,y+10])
@@ -149,9 +154,6 @@ class match:
 		'''
 		1. go through the lines
 		2. check if all the other lines dont intersect, that is if they have a different slope
-			-check vertical lines
-				-check if both are NAN, if they are then just continue
-			-check the non vertical lines
 		'''
 		colnum=0
 		for l1 in self.lines:
@@ -169,7 +171,26 @@ class match:
 						if not p in self.intersections:
 							self.intersections.append(p)
 		print("total intersections: "+str(len(self.intersections)))
-		print(self.intersections)
+		
+		#find the missing points (intersections with no prediction box) with tolerance
+		tolerance=5
+		for p in self.intersections:
+			#point = [p[1],p[0]]
+			inMatch=False
+			#for a in self.match_locations:
+			for a in self.labels:
+				if a.label=="match":
+					x=a.x
+					y=a.y
+					if (p[0]-tolerance < x < p[0]+tolerance
+					and p[1]-tolerance < y < p[1]+tolerance):
+						#if not point in self.match_locations:
+						inMatch=True
+			if not inMatch:
+				l=label(self.world,self,p[0],p[1],self.selectbox[2],self.selectbox[3],"missing",(255,0,0))
+				self.labels.append(l)
+				#self.miss_locations.append(point)
+		print("total labels: "+str(len(self.labels)))
 		
 	def draw(self, img):
 		self.img = img
@@ -179,8 +200,10 @@ class match:
 		#select box
 		pygame.draw.rect(self.world.screen, (0,255,0), self.selectbox, 3)
 		
+		'''
 		#match boxes
 		if self.selecting==False:
+			
 			#template matched boxes
 			for point in self.match_locations:#zip(self.match_locations[1], self.match_locations[0]):
 				x = point[1] + self.x
@@ -196,19 +219,40 @@ class match:
 				y = point[0] + self.y
 				#box = [self.x+x,self.y+y, self.selectbox[2], self.selectbox[3]]
 				box = [x, y, self.selectbox[2], self.selectbox[3]]
-				pygame.draw.rect(self.world.screen, (0,0,255), box, 3)
-				
+				pygame.draw.rect(self.world.screen, (255,0,0), box, 3)
+
 			#intersections
 			for p in self.intersections:
-				x = p[0] + self.x
-				y = p[1] + self.y
+				x = int(p[0] + self.x)
+				y = int(p[1] + self.y)
 				pygame.draw.circle(self.world.screen,(255,255,0),(x,y),5)
-			
+			'''
 
 		#selected image
 		if self.selected==True:
 			self.world.screen.blit(cvimage_to_pygame(self.template),(self.x, self.y+self.height+10))
 			
+		#draw the selectMutlibox toggle
+		box=[self.x,self.y-45,50,32]
+		if checkmousebox(box,[self.world.mouse_x,self.world.mouse_y]):
+			if self.world.mouse_left_down:
+				self.selectmultibox = not self.selectmultibox
+				
+			if self.selectmultibox:
+				c = (10,200,10)
+			else:
+				c = (200,200,200)
+		else:
+			if self.selectmultibox:
+				c=(10,180,10)
+			else:
+				c=(180,180,180)
+				
+		pygame.draw.rect(self.world.screen, c,(box[0],box[1],box[2],box[3]), 0)
+		pygame.draw.rect(self.world.screen, (0,0,0),(box[0]-1,box[1]-1,box[2]+1,box[3]+1), 1)
+		self.world.screen.blit(self.world.fontobject.render("AUTO", 1, (0,0,0)),(box[0]+5, box[1]+5))
 		
-			
+		for l in self.labels:
+			l.draw()
+		
 		

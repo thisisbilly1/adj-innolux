@@ -27,7 +27,7 @@ class controller:
 		
 		self.img=None
 		#self.edge=edge(self.world,self,94,10)
-		self.match = match(self.world,self,94,10)
+		self.match = match(self.world,self,94,50)
 		
 		self.loadFolder("./images/")
 		
