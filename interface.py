@@ -95,7 +95,7 @@ class world:
     
     def stop(self):
         self.running=False
-        pygame.quit() 
+        pygame.quit()
 
 w=world()
 w.update()

@@ -31,6 +31,8 @@ class controller:
 		
 		self.loadFolder("./images/")
 		
+		self.selected=-1
+		
 	def update(self):
 		#dragging around
 		if self.world.mouse_right_down or self.world.mouse_right_up:
@@ -61,6 +63,7 @@ class controller:
 				
 	def loadimg(self,args=()):
 		i=args
+		self.selected=i
 		self.img=cv2.imread(self.imagelistFiles[i])
 		self.match.reset()
 		
@@ -82,11 +85,14 @@ class controller:
 		pygame.draw.rect(self.world.screen, (0,0,0),(box[0]-1,box[1]-1,box[2]+1,box[3]+1), 1)
 		
 		#load button
-		drawbox([10,10,64,32], self.world, (200,200,200), (175,175,175), self.loadlistimages, clickargs=(), text="load", offclickfunction=None)
+		drawbox([10,10,64,32], self.world, (200,200,200), (175,175,175), self.loadlistimages, clickargs=(), text="load")
 		
 		#image buttons
 		for i,img in enumerate(self.imagelist):
-			drawbox([10,52+i*32,64,32], self.world, (200,200,200), (175,175,175), self.loadimg, clickargs=(i), text=str(img), offclickfunction=None)
+			if i!=self.selected:
+				drawbox([10,52+i*32,64,32], self.world, (200,200,200), (175,175,175), self.loadimg, clickargs=(i), text=str(img))
+			else:
+				drawbox([10,52+i*32,64,32], self.world, (0,200,0), (0,175,0), None, text=str(img))
 		
 
         

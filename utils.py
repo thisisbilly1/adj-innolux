@@ -6,6 +6,32 @@ import cv2
 import pygame
 
 import numpy as np
+import math
+
+def get_distance(ref, point):
+    # print('ref: {} , point: {}'.format(ref, point))
+    x1, y1 = ref
+    x2, y2 = point
+    return math.hypot(x2 - x1, y2 - y1)
+
+def group_points(points, distance):
+	groups = {}
+	groupnum = 0
+	while points:
+		groupnum += 1
+		key = str(groupnum)
+		ref = points.pop(0)
+		groups[key] = [ref]
+		#print([ref])
+		for i, point in enumerate(points):
+			d = get_distance(ref, point)
+			if d < distance:
+				#print()
+				groups[key].append(points[i])
+				points[i] = None
+		points = list(filter(lambda x: x is not None, points))
+	# perform average operation on each group
+	return [[int(np.mean([x[0] for x in groups[arr]])), int(np.mean([x[1] for x in groups[arr]]))] for arr in groups]
 
 def resizeImage(image,zoom):
 	width = int(image.shape[1] * zoom)
@@ -28,20 +54,21 @@ def returnCameraIndexes():
     return arr
 
 def drawbox(box, world, color, hovercolor, clickfunction, clickargs=(), text="", offclickfunction=None):
-    c=color
-    if checkmousebox(box,[world.mouse_x,world.mouse_y]):
-        c=hovercolor
-        if world.mouse_left_down:
-            clickfunction(args=clickargs)
-    else:
-        if offclickfunction!=None:
-            if world.mouse_left_down:
-                offclickfunction()
+	c=color
+	if checkmousebox(box,[world.mouse_x,world.mouse_y]):
+		c=hovercolor
+		if world.mouse_left_down:
+			if clickfunction!=None:
+				clickfunction(args=clickargs)
+	else:
+		if offclickfunction!=None:
+			if world.mouse_left_down:
+				offclickfunction()
                 
-    pygame.draw.rect(world.screen, c,(box[0],box[1],box[2],box[3]), 0)
-    pygame.draw.rect(world.screen, (0,0,0),(box[0]-1,box[1]-1,box[2]+1,box[3]+1), 1)
+	pygame.draw.rect(world.screen, c,(box[0],box[1],box[2],box[3]), 0)
+	pygame.draw.rect(world.screen, (0,0,0),(box[0]-1,box[1]-1,box[2]+1,box[3]+1), 1)
     
-    world.screen.blit(world.fontobject.render(str(text), 1, (0,0,0)),(box[0]+5, box[1]+5))
+	world.screen.blit(world.fontobject.render(str(text), 1, (0,0,0)),(box[0]+5, box[1]+5))
 
 
 def clamp(x,minn,maxx):
