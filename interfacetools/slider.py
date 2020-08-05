@@ -1,6 +1,7 @@
 import pygame
 import numpy as np
-from utils import checkmousebox, clamp
+from utils import checkmousebox, clamp, hsv_to_rgb
+
 '''
 the slider goes form 0 to 100
 the multiplier is the multiplier for the display value
@@ -60,8 +61,10 @@ class slider:
 				self.slideValue+=1
         '''
 		
-	def draw(self,x=0,y=0):
+	def draw(self,x=0,y=0,displayHue=False):
 		self.previous_slie=self.slide
+		self.x=x
+		self.y=y
 		xx=0#self.controller.xx
 		yy=0#self.controller.yy
         
@@ -90,5 +93,5 @@ class slider:
 		pygame.draw.rect(self.world.screen, (0,0,0),(sliderbox[0], sliderbox[1], sliderbox[2], sliderbox[3]), 1)
         
 		self.world.screen.blit(self.world.fontobject.render(self.label+": "+str(self.slideValue), 1, (0,0,0)),(self.x+xx, self.y+yy-20))
-        
-        
+		#print(hsv_to_rgb(self.slideValue,100,100))
+		pygame.draw.rect(self.world.screen, hsv_to_rgb(self.slideValue/360,1,1), (self.x+65,self.y-20,10,10))

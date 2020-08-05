@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from utils import cvimage_to_pygame, clamp, group_points, get_distance, checkmousebox
+from utils import cvimage_to_pygame, clamp, group_points, get_distance, checkmousebox, hsv_to_rgb
 import pygame
 from regression import line, isNaN, intersection
 from interfacetools.label import label 
@@ -120,11 +120,13 @@ class match:
 						#create the label
 						#if not self.controller.actionbar.classes==None:
 						if not self.controller.actionbar.selected==None:
-							txt=self.controller.actionbar.classes[self.controller.actionbar.selected]
+							labeltext=self.controller.actionbar.classes[self.controller.actionbar.selected]
+							labelcolor=hsv_to_rgb(self.controller.actionbar.colors[self.controller.actionbar.selected].slideValue/360,1,1)
 						else:
-							txt="None"
+							labeltext="None"
+							labelcolor=(0,0,0)
 							
-						l=label(self.world,self,self.selectbox[0]-self.x,self.selectbox[1]-self.y,self.selectbox[2],self.selectbox[3],txt,(0,255,255))
+						l=label(self.world,self,self.selectbox[0]-self.x,self.selectbox[1]-self.y,self.selectbox[2],self.selectbox[3],labeltext,labelcolor)
 						self.labels.append(l)
 						self.selectsinglebox=False
 						#select the label that was just created
@@ -174,8 +176,10 @@ class match:
 					#get the defaults from the actionbar
 					try:
 						labeltext = self.controller.actionbar.classes[self.controller.actionbar.defaultmatch]
+						labelcolor=hsv_to_rgb(self.controller.actionbar.colors[self.controller.actionbar.defaultmatch].slideValue/360,1,1)
 					except:
 						labeltext = "NONE"
+						labelcolor=(0,0,0)
 						
 					for m in match_locations:
 						l=label(self.world,self,m[1],m[0],self.selectbox[2],self.selectbox[3],labeltext,(0,255,0))
@@ -194,8 +198,10 @@ class match:
 		#get the defaults from the actionbar
 		try:
 			labeltext = self.controller.actionbar.classes[self.controller.actionbar.defaultmiss]
+			labelcolor=hsv_to_rgb(self.controller.actionbar.colors[self.controller.actionbar.defaultmiss].slideValue/360,1,1)
 		except:
 			labeltext = "NONE"
+			labelcolor = (0,0,0)
 			
 		for p in self.tempautolabels:
 			x=p.x
@@ -270,7 +276,7 @@ class match:
 						#if not point in self.match_locations:
 						inMatch=True
 			if not inMatch:
-				l=label(self.world,self,p[0],p[1],self.selectbox[2],self.selectbox[3],labeltext,(255,0,0))
+				l=label(self.world,self,p[0],p[1],self.selectbox[2],self.selectbox[3],labeltext,labelcolor)
 				self.tempautolabels.append(l)
 				#self.miss_locations.append(point)
 		print("total labels: "+str(len(self.tempautolabels)))

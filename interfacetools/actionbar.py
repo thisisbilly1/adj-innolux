@@ -1,6 +1,7 @@
 import pygame
-from utils import drawbox
-
+from utils import drawbox, hsv_to_rgb
+from interfacetools.slider import slider
+ 
 class actionbar:
 	def __init__(self,world,controller,x,y):
 		self.world=world
@@ -9,7 +10,9 @@ class actionbar:
 		self.y=y
 		self.keybinds=[ord("1"),ord("2"),ord("3")]
 		self.classes=["good","ng","test"]
-		self.colors=[[0,255,0],[255,0,0],[0,0,255]]
+		self.colors=[slider(self.world,self.x,self.y,"hue",sliderange=(0,360),start=110),
+			   slider(self.world,self.x,self.y,"hue",sliderange=(0,360),start=0),
+			   slider(self.world,self.x,self.y,"hue",sliderange=(0,360),start=180)]
 		
 		self.selected=None
 		#for multi select tool
@@ -34,6 +37,7 @@ class actionbar:
 		#try to update the selected label box to the current selected
 		if self.controller.match.labelselect!=None:
 			self.controller.match.labelselect.label=self.classes[i]
+			self.controller.match.labelselect.color=hsv_to_rgb(self.colors[i].slideValue/360,1,1)
 	
 	def updatelabel(self,args=()):
 		i=args[0]
@@ -45,12 +49,13 @@ class actionbar:
 		self.selectededititem=[None,None]
 		del self.classes[args]
 		del self.keybinds[args]
-		
+		del self.colors[args]
 	
 	def createlabel(self,args=()):
 		self.selectededititem=[None,None]
 		self.classes.append("")
 		self.keybinds.append(None)
+		self.colors.append(slider(self.world,self.x,self.y,"hue",sliderange=(0,360),start=0))
 		
 	def updateautomiss(self,args=()):
 		self.defaultmiss=args
@@ -67,6 +72,7 @@ class actionbar:
 							#try to update the selected label box to the current selected
 							if self.controller.match.labelselect!=None:
 								self.controller.match.labelselect.label=self.classes[i]
+								self.controller.match.labelselect.color=hsv_to_rgb(self.colors[i].slideValue/360,1,1)
 		#edit the labels
 		else:
 			for i in range(len(self.classes)):
@@ -103,13 +109,14 @@ class actionbar:
 		#label boxes
 		if self.editmode:
 			for i in range(len(self.classes)):
+				y=i*60+40
 				#keybind
 				c=(200,200,200)
 				hc=(175,175,175)
 				if self.selectededititem==[i,0]:
 					c = (0,200,200)
 					hc = (0,175,175)
-				box = [self.x,self.y+i*40+40,32,32]
+				box = [self.x,self.y+y,32,32]
 				
 				if self.keybinds[i]==None:
 					txt="NA"
@@ -125,18 +132,18 @@ class actionbar:
 				if self.selectededititem==[i,1]:
 					c=(0,200,200)
 					hc=(0,175,175)
-				box = [self.x+32,self.y+i*40+40,w,32]
+				box = [self.x+32,self.y+y,w,32]
 				drawbox(box, self.world, c, hc, self.updatelabel, clickargs=(i,1), text=self.classes[i])
 				
-				#RGB sliders
-				box = [self.x+46+w,self.y+i*40+40,32,32]
-				drawbox(box, self.world, (200,0,0), (175,0,0), self.deletelabel, clickargs=(i), text="-")
+				#Hue slider
+				self.colors[i].draw(x=self.x+46+w,y=self.y+y+15,displayHue=True)
 				
 				#delete button
-				box = [self.x+46+w,self.y+i*40+40,32,32]
+				box = [self.x+170+w,self.y+y,32,32]
 				drawbox(box, self.world, (200,0,0), (175,0,0), self.deletelabel, clickargs=(i), text="-")
+				
 			#add button
-			box = [self.x,self.y+len(self.classes)*40+80,64,32]
+			box = [self.x,self.y+len(self.classes)*60+80,64,32]
 			drawbox(box, self.world, (0,200,0), (0,175,0), self.createlabel, text="+")
 			
 		else:
