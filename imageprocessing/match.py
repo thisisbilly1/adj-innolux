@@ -27,21 +27,36 @@ class match:
 		self.template=None
 		
 		self.labels=[]
+		self.tempautolabels=[]
+		self.labelselect=None
 		
 		self.lines=[]#line(self.world, x, y, [1,2,3], [1,2,3])
 		self.intersections=[]
 		
 		self.selectmultibox=True
+		self.selectsinglebox=False
+		self.labelhandled=False
+		
+	def updatelabelselect(self, label):
+		for l in self.labels:
+			l.selected=False
+		self.labelselect=label
+		
+	def deletelabel(self,label):
+		i=self.labels.index(label)
+		del self.labels[i]
+		#del label
 		
 	def reset(self):
-		self.lables=[]
+		self.labels=[]
+		self.tempautolabels=[]
 		self.selecting=False
 		self.selectbox=[0,0,0,0]
 		self.selected=False
 		self.template=None
 		self.lines=[]
 		self.intersections=[]
-		self.selectmultibox=True
+		#self.selectmultibox=True
 		
 	def update(self):
 		try:
@@ -49,72 +64,140 @@ class match:
 		except:
 			return
 		
-		if self.selectmultibox:
+		#update the labels selection
+		tempselect=False
+		for l in self.labels:
+			l.update()
+			#deselecting
+			if self.world.mouse_left_down:
+				if (self.x<self.world.mouse_x<self.x+self.width
+				   and self.y<self.world.mouse_y<self.y+self.height):
+					t = l.checkselect()
+					if t:
+						tempselect=True
+		if self.world.mouse_left_down:
 			if (self.x<self.world.mouse_x<self.x+self.width
-			   and self.y<self.world.mouse_y<self.y+self.height):
-				if self.world.mouse_left_down:
+				   and self.y<self.world.mouse_y<self.y+self.height):
+				if not tempselect:
+					self.updatelabelselect(None)
+			
+			
+		#start single select
+		if self.world.mouse_left_down:
+			if self.selectsinglebox:
+				if (self.x<self.world.mouse_x<self.x+self.width
+				   and self.y<self.world.mouse_y<self.y+self.height):
+					self.selectbox[0]=self.world.mouse_x
+					self.selectbox[1]=self.world.mouse_y
+					self.selecting=True
+					self.selected=False
+
+		#start multi select
+		if self.world.mouse_left_down:
+			if self.selectmultibox:
+				if (self.x<self.world.mouse_x<self.x+self.width
+				   and self.y<self.world.mouse_y<self.y+self.height):
 					self.selectbox[0]=self.world.mouse_x
 					self.selectbox[1]=self.world.mouse_y
 					self.selecting=True
 					self.selected=False
 					self.lines=[]
 					self.intersections=[]
-					#self.miss_locations=[]
-					self.labels=[]
+					#self.labels=[]
+					self.tempautolabels=[]
 				
 		if self.selecting:
 			self.selectbox[2]=clamp(self.world.mouse_x-self.selectbox[0],self.x-self.selectbox[0],self.x+self.width-self.selectbox[0])
 			self.selectbox[3]=clamp(self.world.mouse_y-self.selectbox[1],self.y-self.selectbox[1],self.y+self.height-self.selectbox[1])
 			
-			
-			if self.world.mouse_left_up:
-				self.selecting=False
-				self.selectmultibox=False
-				if abs(self.selectbox[2])>0 and abs(self.selectbox[3])>0:
-					self.selected=True
-				else:
-					self.selected=False
-					return
-				
-				#run template matching, get minimum val
-				gray = cv2.cvtColor(self.img,cv2.COLOR_BGR2GRAY)
-				template = cv2.cvtColor(self.template,cv2.COLOR_BGR2GRAY)
-				res = cv2.matchTemplate(gray, template, cv2.TM_CCOEFF_NORMED)#TM_SQDIFF_NORMED
-				min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
-				
-				# create threshold from min val, find where sqdiff is less than thresh
-				min_thresh = .9# (min_val + 1e-6) * 1.5
-				match_locations = np.where(res >= min_thresh)
-				
-				match_locations = (np.array(match_locations).T).tolist()
-				match_locations = group_points(match_locations,10)
-				for m in match_locations:
-					l=label(self.world,self,m[1],m[0],self.selectbox[2],self.selectbox[3],"match",(0,255,0))
-					self.labels.append(l)
+			#single
+			if self.selectsinglebox:
+				if self.world.mouse_left_up:
+					self.selecting=False
+					self.selectmultibox=False
+					if abs(self.selectbox[2])>0 and abs(self.selectbox[3])>0:
+						self.selected=True
+						#create the label
+						#if not self.controller.actionbar.classes==None:
+						if not self.controller.actionbar.selected==None:
+							txt=self.controller.actionbar.classes[self.controller.actionbar.selected]
+						else:
+							txt="None"
+							
+						l=label(self.world,self,self.selectbox[0]-self.x,self.selectbox[1]-self.y,self.selectbox[2],self.selectbox[3],txt,(0,255,255))
+						self.labels.append(l)
+						self.selectsinglebox=False
+						#select the label that was just created
+						self.updatelabelselect(l)
+						l.selected=True
+					else:
+						self.selected=False
+						return
+			#multi
+			if self.selectmultibox:
+				if self.world.mouse_left_up:
+					self.selecting=False
+					self.selectmultibox=False
+					if abs(self.selectbox[2])>0 and abs(self.selectbox[3])>0:
+						self.selected=True
+					else:
+						self.selected=False
+						return
+					#create the template
+					if self.selectbox[2]>0:
+						x1=self.selectbox[0]-self.x
+						x2=self.selectbox[0]+self.selectbox[2]-self.x
+					else:
+						x1=self.selectbox[0]+self.selectbox[2]-self.x
+						x2=self.selectbox[0]-self.x
+					if self.selectbox[3]>0:
+						y1=self.selectbox[1]-self.y
+						y2=self.selectbox[1]+self.selectbox[3]-self.y
+					else:
+						y1=self.selectbox[1]+self.selectbox[3]-self.y
+						y2=self.selectbox[1]-self.y
+					self.template=self.img[y1:y2, x1:x2]
 					
-				#print(self.match_locations)
-				
-				
-				self.predict_missing_boxes()
+					#run template matching, get minimum val
+					gray = cv2.cvtColor(self.img,cv2.COLOR_BGR2GRAY)
+					template = cv2.cvtColor(self.template,cv2.COLOR_BGR2GRAY)
+					res = cv2.matchTemplate(gray, template, cv2.TM_CCOEFF_NORMED)#TM_SQDIFF_NORMED
+					min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+					
+					# create threshold from min val, find where sqdiff is less than thresh
+					min_thresh = .9# (min_val + 1e-6) * 1.5
+					match_locations = np.where(res >= min_thresh)
+					
+					match_locations = (np.array(match_locations).T).tolist()
+					match_locations = group_points(match_locations,10)
+					
+					#get the defaults from the actionbar
+					try:
+						labeltext = self.controller.actionbar.classes[self.controller.actionbar.defaultmatch]
+					except:
+						labeltext = "NONE"
+						
+					for m in match_locations:
+						l=label(self.world,self,m[1],m[0],self.selectbox[2],self.selectbox[3],labeltext,(0,255,0))
+						#self.labels.append(l)
+						self.tempautolabels.append(l)
+						
+					#print(self.match_locations)
+					
+					
+					self.predict_missing_boxes(labeltext)
 			
-		#create the template
-		if self.selectbox[2]>0:
-			x1=self.selectbox[0]-self.x
-			x2=self.selectbox[0]+self.selectbox[2]-self.x
-		else:
-			x1=self.selectbox[0]+self.selectbox[2]-self.x
-			x2=self.selectbox[0]-self.x
-		if self.selectbox[3]>0:
-			y1=self.selectbox[1]-self.y
-			y2=self.selectbox[1]+self.selectbox[3]-self.y
-		else:
-			y1=self.selectbox[1]+self.selectbox[3]-self.y
-			y2=self.selectbox[1]-self.y
-		self.template=self.img[y1:y2, x1:x2]
+				
 			
 		
-	def predict_missing_boxes(self):
-		for p in self.labels:
+	def predict_missing_boxes(self,goodlabeltext):
+		#get the defaults from the actionbar
+		try:
+			labeltext = self.controller.actionbar.classes[self.controller.actionbar.defaultmiss]
+		except:
+			labeltext = "NONE"
+			
+		for p in self.tempautolabels:
 			x=p.x
 			y=p.y
 			#print(str(x)+","+str(y))
@@ -178,8 +261,8 @@ class match:
 			#point = [p[1],p[0]]
 			inMatch=False
 			#for a in self.match_locations:
-			for a in self.labels:
-				if a.label=="match":
+			for a in self.tempautolabels:
+				if a.label==goodlabeltext:#"match":
 					x=a.x
 					y=a.y
 					if (p[0]-tolerance < x < p[0]+tolerance
@@ -187,18 +270,27 @@ class match:
 						#if not point in self.match_locations:
 						inMatch=True
 			if not inMatch:
-				l=label(self.world,self,p[0],p[1],self.selectbox[2],self.selectbox[3],"missing",(255,0,0))
-				self.labels.append(l)
+				l=label(self.world,self,p[0],p[1],self.selectbox[2],self.selectbox[3],labeltext,(255,0,0))
+				self.tempautolabels.append(l)
 				#self.miss_locations.append(point)
-		print("total labels: "+str(len(self.labels)))
+		print("total labels: "+str(len(self.tempautolabels)))
+		#add the temp labels and the labels, delete the temp labels
+		self.labels=self.labels+self.tempautolabels
+		self.tempautolabels=[]
 		
 	def draw(self, img):
 		self.img = img
+		try:
+			_,_,_ = self.img.shape 
+		except:
+			return
+			
 		self.world.screen.blit(cvimage_to_pygame(img), (self.x, self.y))
 		for l in self.lines:
 			l.draw(self.width,self.height)
 		#select box
-		pygame.draw.rect(self.world.screen, (0,255,0), self.selectbox, 3)
+		if self.selecting:
+			pygame.draw.rect(self.world.screen, (0,255,0), self.selectbox, 3)
 		
 		'''
 		#match boxes
@@ -228,15 +320,18 @@ class match:
 				pygame.draw.circle(self.world.screen,(255,255,0),(x,y),5)
 			'''
 
-		#selected image
-		if self.selected==True:
+		#template image
+		try:
 			self.world.screen.blit(cvimage_to_pygame(self.template),(self.x, self.y+self.height+10))
-			
+		except:
+			pass
+		
 		#draw the selectMutlibox toggle
 		box=[self.x,self.y-45,50,32]
 		if checkmousebox(box,[self.world.mouse_x,self.world.mouse_y]):
 			if self.world.mouse_left_down:
 				self.selectmultibox = not self.selectmultibox
+				self.selectsinglebox = False
 				
 			if self.selectmultibox:
 				c = (10,200,10)
@@ -251,6 +346,27 @@ class match:
 		pygame.draw.rect(self.world.screen, c,(box[0],box[1],box[2],box[3]), 0)
 		pygame.draw.rect(self.world.screen, (0,0,0),(box[0]-1,box[1]-1,box[2]+1,box[3]+1), 1)
 		self.world.screen.blit(self.world.fontobject.render("AUTO", 1, (0,0,0)),(box[0]+5, box[1]+5))
+		
+		#draw the add single box
+		box=[self.x+75,self.y-45,64,32]
+		if checkmousebox(box,[self.world.mouse_x,self.world.mouse_y]):
+			if self.world.mouse_left_down:
+				self.selectsinglebox = not self.selectsinglebox
+				self.selectmultibox = False
+				
+			if self.selectsinglebox:
+				c = (10,200,10)
+			else:
+				c = (200,200,200)
+		else:
+			if self.selectsinglebox:
+				c=(10,180,10)
+			else:
+				c=(180,180,180)
+				
+		pygame.draw.rect(self.world.screen, c,(box[0],box[1],box[2],box[3]), 0)
+		pygame.draw.rect(self.world.screen, (0,0,0),(box[0]-1,box[1]-1,box[2]+1,box[3]+1), 1)
+		self.world.screen.blit(self.world.fontobject.render("ADD 1", 1, (0,0,0)),(box[0]+5, box[1]+5))
 		
 		for l in self.labels:
 			l.draw()

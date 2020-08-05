@@ -60,7 +60,7 @@ class slider:
 				self.slideValue+=1
         '''
 		
-	def draw(self):
+	def draw(self,x=0,y=0):
 		self.previous_slie=self.slide
 		xx=0#self.controller.xx
 		yy=0#self.controller.yy

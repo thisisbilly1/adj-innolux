@@ -11,6 +11,7 @@ from utils import clamp, cvimage_to_pygame,drawbox
 
 #from imageprocessing.edge import edge
 from imageprocessing.match import match
+from interfacetools.actionbar import actionbar
 
 class controller:
 	def __init__(self,world):
@@ -28,6 +29,7 @@ class controller:
 		self.img=None
 		#self.edge=edge(self.world,self,94,10)
 		self.match = match(self.world,self,94,50)
+		self.actionbar=actionbar(self.world,self,1125,50)
 		
 		self.loadFolder("./images/")
 		
@@ -43,7 +45,8 @@ class controller:
 			self.mouse_clicked=(self.world.mouse_x,self.world.mouse_y)
 		
 		self.match.update()
-			
+		self.actionbar.update()
+		
 	def loadlistimages(self,args=()):
 		root = Tk()
 		root.withdraw()
@@ -71,10 +74,11 @@ class controller:
 		try:
 			
 			self.match.draw(self.img)
+			self.actionbar.draw()
 			#self.edge.draw(self.img)
 		except Exception as e:
-			#print(e)
-			pass
+			print(e)
+			#pass
 		
 		self.world.screen.blit(self.world.fontobject.render(str(self.currentfolder), 1, (0,0,0)),(50, 50))
 		
