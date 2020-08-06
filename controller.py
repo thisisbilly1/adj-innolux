@@ -36,6 +36,9 @@ class controller:
 		self.actionbar=actionbar(self.world,self,1125,50)
 		
 		self.loadFolder(self.currentfolder)
+		self.filesperpage=20
+		self.page=1
+		self.totalpages=0
 		
 		self.selected=-1
 		
@@ -65,6 +68,7 @@ class controller:
 		
 	def loadFolder(self,folder):
 		self.imagelist=[]
+		self.imagelistFiles=[]
 		for file in os.listdir(folder):
 			if file.endswith(".png") or file.endswith(".jpg") or file.endswith(".JPG") or file.endswith(".PNG"):
 				self.imagelistFiles.append(str(folder)+"/"+str(file))
@@ -171,6 +175,13 @@ class controller:
 		f.write(xmlstring)
 		f.close()
 		print("saved xml")
+		
+	def pagedecrease(self,args=()):
+		self.page=max(1,self.page-1)
+	def pageincrease(self,args=()):
+		totalpages=max(len(self.imagelist)//self.filesperpage,1)
+		self.page=min(totalpages,self.page+1)
+		
 	def draw(self):
 		try:
 			self.match.draw(self.img)
@@ -183,9 +194,11 @@ class controller:
 			print(e)
 			#pass
 		
-		self.world.screen.blit(self.world.fontobject.render(str(self.currentfolder), 1, (0,0,0)),(0, 100+len(self.imagelist)*32))
+		self.world.screen.blit(self.world.fontobject.render(str(self.currentfolder), 1, (0,0,0)),(0, 100+self.filesperpage*32))
 		
-		box=[1,1,84,52+len(self.imagelist)*32+10]
+		
+		
+		box=[1,1,84,52+self.filesperpage*32+10]
 		
 		#interface
 		pygame.draw.rect(self.world.screen, (200,200,200),(box[0],box[1],box[2],box[3]), 0)
@@ -195,11 +208,23 @@ class controller:
 		drawbox([10,10,64,32], self.world, (200,200,200), (175,175,175), self.loadlistimages, clickargs=(), text="load")
 		
 		#image buttons
-		for i,img in enumerate(self.imagelist):
-			if i!=self.selected:
-				drawbox([10,52+i*32,64,32], self.world, (200,200,200), (175,175,175), self.loadimg, clickargs=(i), text=str(img))
+		totalimages=len(self.imagelist)
+		totalpages=max(totalimages//self.filesperpage,1)
+		
+		#page handling
+		y=75+self.filesperpage*32
+		self.world.screen.blit(self.world.fontobject.render(str(self.page)+"/"+str(totalpages), 1, (0,0,0)),(30, y))
+		drawbox([0,y,20,32], self.world, (200,200,200), (175,175,175), self.pagedecrease, clickargs=(), text="<")
+		drawbox([60,y,20,32], self.world, (200,200,200), (175,175,175), self.pageincrease, clickargs=(), text=">")
+		
+		ll=self.filesperpage*(self.page-1)
+		ul=min(self.filesperpage*(self.page),totalimages)
+		for a,i in zip(range(ll,ul,1),range(0,self.filesperpage)):
+		#for i in range(len(self.imagelist)):
+			if a!=self.selected:
+				drawbox([10,52+i*32,64,32], self.world, (200,200,200), (175,175,175), self.loadimg, clickargs=(a), text=str(self.imagelist[a]))
 			else:
-				drawbox([10,52+i*32,64,32], self.world, (0,200,0), (0,175,0), None, text=str(img))
+				drawbox([10,52+i*32,64,32], self.world, (0,200,0), (0,175,0), None, text=str(self.imagelist[a]))
 		
 
         

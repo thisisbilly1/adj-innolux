@@ -104,8 +104,6 @@ class actionbar:
 			hc=(0,175,0)
 		drawbox(box, self.world, c, hc, self.updateedit, text="Edit")
 		
-		
-		
 		#label boxes
 		if self.editmode:
 			for i in range(len(self.classes)):
