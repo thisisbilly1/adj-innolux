@@ -8,6 +8,15 @@ import pygame
 import numpy as np
 import math
 
+from xml.etree import ElementTree
+from xml.dom import minidom
+
+def prettifyXML(elem):
+    """Return a pretty-printed XML string for the Element.
+    """
+    rough_string = ElementTree.tostring(elem, 'utf-8')
+    reparsed = minidom.parseString(rough_string)
+    return reparsed.toprettyxml(indent="  ")
 
 
 def get_distance(ref, point):

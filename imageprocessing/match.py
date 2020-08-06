@@ -33,7 +33,7 @@ class match:
 		self.lines=[]#line(self.world, x, y, [1,2,3], [1,2,3])
 		self.intersections=[]
 		
-		self.selectmultibox=True
+		self.selectmultibox=False
 		self.selectsinglebox=False
 		self.labelhandled=False
 		
