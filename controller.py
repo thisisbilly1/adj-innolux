@@ -27,6 +27,7 @@ class controller:
 		self.mouse_clicked=(0,0)
 		
 		self.imagelist=[]
+		self.imagehasxml=[]
 		self.imagelistFiles=[]
 		self.currentfolder="images"
 		
@@ -69,8 +70,12 @@ class controller:
 	def loadFolder(self,folder):
 		self.imagelist=[]
 		self.imagelistFiles=[]
+		self.imagehasxml=[]
 		for file in os.listdir(folder):
 			if file.endswith(".png") or file.endswith(".jpg") or file.endswith(".JPG") or file.endswith(".PNG"):
+				xmlname=str(file)[:-3]+"xml"
+				self.imagehasxml.append(os.path.exists(str(folder)+"/"+xmlname))
+				
 				self.imagelistFiles.append(str(folder)+"/"+str(file))
 				if len(str(file))>9:
 					self.imagelist.append(str(file)[0:6]+"...")
@@ -174,12 +179,13 @@ class controller:
 		f = open(xmlfilename,"a")
 		f.write(xmlstring)
 		f.close()
+		self.imagehasxml[self.selected]=True
 		print("saved xml")
 		
 	def pagedecrease(self,args=()):
 		self.page=max(1,self.page-1)
 	def pageincrease(self,args=()):
-		totalpages=max(len(self.imagelist)//self.filesperpage,1)
+		totalpages=max(len(self.imagelistFiles)//self.filesperpage,1)
 		self.page=min(totalpages,self.page+1)
 		
 	def draw(self):
@@ -194,7 +200,7 @@ class controller:
 			print(e)
 			#pass
 		
-		self.world.screen.blit(self.world.fontobject.render(str(self.currentfolder), 1, (0,0,0)),(0, 100+self.filesperpage*32))
+		self.world.screen.blit(self.world.fontobject.render(str(self.currentfolder), 1, (0,0,0)),(0, 150+self.filesperpage*32))
 		
 		
 		
@@ -208,7 +214,7 @@ class controller:
 		drawbox([10,10,64,32], self.world, (200,200,200), (175,175,175), self.loadlistimages, clickargs=(), text="load")
 		
 		#image buttons
-		totalimages=len(self.imagelist)
+		totalimages=len(self.imagelistFiles)
 		totalpages=max(totalimages//self.filesperpage,1)
 		
 		#page handling
@@ -222,9 +228,14 @@ class controller:
 		for a,i in zip(range(ll,ul,1),range(0,self.filesperpage)):
 		#for i in range(len(self.imagelist)):
 			if a!=self.selected:
-				drawbox([10,52+i*32,64,32], self.world, (200,200,200), (175,175,175), self.loadimg, clickargs=(a), text=str(self.imagelist[a]))
+				c=(200,200,200)
+				hc=(175,175,175)
+				if self.imagehasxml[a]:
+					c=(0,200,0)
+					hc=(0,175,0)
+				drawbox([10,52+i*32,64,32], self.world, c, hc, self.loadimg, clickargs=(a), text=str(self.imagelist[a]))
 			else:
-				drawbox([10,52+i*32,64,32], self.world, (0,200,0), (0,175,0), None, text=str(self.imagelist[a]))
+				drawbox([10,52+i*32,64,32], self.world, (200,200,0), (175,175,0), None, text=str(self.imagelist[a]))
 		
 
         

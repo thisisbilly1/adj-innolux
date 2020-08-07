@@ -1,19 +1,29 @@
 import pygame
 from utils import drawbox, hsv_to_rgb
 from interfacetools.slider import slider
- 
+import pickle
+import os
+
 class actionbar:
 	def __init__(self,world,controller,x,y):
 		self.world=world
 		self.controller=controller
 		self.x=x
 		self.y=y
-		self.keybinds=[ord("1"),ord("2"),ord("3")]
-		self.classes=["good","ng","test"]
-		self.colors=[slider(self.world,self.x,self.y,"hue",sliderange=(0,360),start=110),
-			   slider(self.world,self.x,self.y,"hue",sliderange=(0,360),start=0),
-			   slider(self.world,self.x,self.y,"hue",sliderange=(0,360),start=180)]
-		
+		#try and load the actionbar
+		if os.path.exists("actionbar.pkl"):
+			with open('actionbar.pkl','rb') as f:
+				saveactionbar=pickle.load(f)
+			self.keybinds=saveactionbar[0]
+			self.classes=saveactionbar[1]
+			self.colors=[slider(self.world,self.x,self.y,"hue",sliderange=(0,360),start=x) for x in saveactionbar[2]]
+		else:
+			self.keybinds=[ord("1"),ord("2"),ord("3")]
+			self.classes=["good","ng","test"]
+			self.colors=[slider(self.world,self.x,self.y,"hue",sliderange=(0,360),start=110),
+				   slider(self.world,self.x,self.y,"hue",sliderange=(0,360),start=0),
+				   slider(self.world,self.x,self.y,"hue",sliderange=(0,360),start=180)]
+			
 		self.selected=None
 		#for multi select tool
 		self.defaultmatch=0
@@ -28,6 +38,16 @@ class actionbar:
 		self.selectededititem=[None,None]
 		
 	def updateedit(self, args=()):
+		#save the action bar
+		if self.editmode:
+			saveactionbar=[]
+			saveactionbar.append(self.keybinds)
+			saveactionbar.append(self.classes)
+			saveactionbar.append([c.slideValue for c in self.colors])
+			with open('actionbar.pkl','wb') as f:
+				pickle.dump(saveactionbar, f)
+			print("saved actionbar")
+			
 		self.editmode=not self.editmode
 		
 	def updateselect(self,args=()):

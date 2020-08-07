@@ -1,0 +1,26 @@
+<annotation>
+	<folder>AOIH08</folder>
+	<filename>3355T18BM055NA00150001.JPG</filename>
+	<path>\\hp06340p\ADJ\Labeling完成\33558021-AOIH08\PP02-C\AOIH08\3355T18BM055NA00150001.JPG</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>1024</width>
+		<height>768</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>PP02-C</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>520</xmin>
+			<ymin>386</ymin>
+			<xmax>597</xmax>
+			<ymax>458</ymax>
+		</bndbox>
+	</object>
+</annotation>
