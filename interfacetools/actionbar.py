@@ -171,11 +171,16 @@ class actionbar:
 				w,h = self.world.fontobject.size(str(self.classes[i]))
 				w = max(64,w+30)
 				box = [self.x,self.y+i*40+40,w,32]
+				
+				
 				c=(200,200,200)
 				hc=(175,175,175)
 				if self.selected==i:
-					c=(0,200,0)
-					hc=(0,175,0)
+					#c=(0,200,0)
+					#hc=(0,175,0)
+				
+					c=hsv_to_rgb(self.colors[i].slideValue/360,1,1)
+					hc=(c[0]-25,c[1]-25,c[2]-25)
 					
 				if self.keybinds[i]==None:
 					txt="NA : "+str(self.classes[i])
