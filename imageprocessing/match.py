@@ -282,7 +282,8 @@ class match:
 		print("total labels: "+str(len(self.tempautolabels)))
 		#add the temp labels and the labels, delete the temp labels
 		self.labels=self.labels+self.tempautolabels
-		self.tempautolabels=[]
+		return self.tempautolabels
+		#self.tempautolabels=[]
 		
 	def draw(self, img):
 		self.img = img

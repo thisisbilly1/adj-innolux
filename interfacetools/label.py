@@ -3,7 +3,7 @@ import numpy as np
 from utils import checkmousebox, clamp
 
 class label:
-	def __init__(self, world, controller, x, y, w, h, label, color):
+	def __init__(self, world, controller, x, y, w, h, label, color,acc=1):
 		self.world=world
 		self.controller=controller
 		self.x=x
@@ -13,6 +13,7 @@ class label:
 		
 		self.color=color
 		self.label=label
+		self.acc=acc
 		
 		self.selected=False
 		
@@ -42,15 +43,15 @@ class label:
 				
 				#update the action bar with the current one
 				try:
-					i=self.controller.controller.actionbar.classes.index(self.label)
-					self.controller.controller.actionbar.selected=i#self.controller.controller.actionbar.classes[i]
+					i=self.controller.actionbar.classes.index(self.label)
+					self.controller.actionbar.selected=i#self.controller.controller.actionbar.classes[i]
 				except Exception as e:
 					print(e)
 					#self.controller.controller.actionbar.selected=None
 		return temp
 	def update(self):
 		#deletion
-		if not self.controller.controller.actionbar.editmode:			
+		if not self.controller.actionbar.editmode:			
 			if self.selected:
 				for key in self.world.keyspressed:
 					if key == pygame.K_DELETE or key==pygame.K_BACKSPACE:

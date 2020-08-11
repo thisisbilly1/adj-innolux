@@ -1,0 +1,15 @@
+main
+	-controls the inputs
+	-controls game logic
+
+	controller
+		-controls the files
+		-controls the xml
+		-controls the labels
+	
+	match
+		-controls the match template
+		-controls the predict missing boxes
+
+	area
+		-predicts the areas

@@ -7,10 +7,10 @@ from tkinter import filedialog
 from tkinter import *
 import os
 
-from utils import clamp, cvimage_to_pygame, drawbox, prettifyXML, hsv_to_rgb
+from utils import clamp, cvimage_to_pygame, drawbox, prettifyXML, hsv_to_rgb,checkmousebox
 
 #from imageprocessing.edge import edge
-from imageprocessing.match import match
+from imageprocessing.match2 import match
 from interfacetools.actionbar import actionbar
 
 from xml.etree.ElementTree import Element, SubElement
@@ -20,7 +20,10 @@ from interfacetools.label import label
 class controller:
 	def __init__(self,world):
 		self.world=world
-        
+		
+		self.x=94
+		self.y=50
+		
 		#for dragging the image
 		self.xx=0
 		self.yy=0
@@ -33,7 +36,7 @@ class controller:
 		
 		self.img=None
 		#self.edge=edge(self.world,self,94,10)
-		self.match = match(self.world,self,94,50)
+		self.match = match(self.world,self,self.x,self.y)
 		#self.match = match(self.world,self,94,50)
 		self.actionbar=actionbar(self.world,self,1125,50)
 		
@@ -42,7 +45,30 @@ class controller:
 		self.page=1
 		self.totalpages=0
 		
-		self.selected=-1
+		self.Fileselected=-1
+		
+		#labels
+		self.labels=[]
+		self.labelhandled=False
+		self.labelselect=None
+		
+		self.selectmultibox=False
+		self.selectsinglebox=False
+		
+		self.selecting=False
+		self.selectbox=[0,0,0,0]
+		self.width=0
+		self.height=0
+		
+	def updatelabelselect(self, label):
+		for l in self.labels:
+			l.selected=False
+		self.labelselect=label
+	
+	def deletelabel(self,label):
+		i=self.labels.index(label)
+		del self.labels[i]
+		#del label
 		
 	def update(self):
 		#dragging around
@@ -59,9 +85,115 @@ class controller:
 			if ((pygame.K_RCTRL) in self.world.keyspressed):
 				self.save()
 				
-		self.match.update()
+		#self.match.update()
 		self.actionbar.update()
+		self.selectregion()
+	
+	def selectregion(self):
+		#selecting
+		try:
+			self.height, self.width, channels = self.img.shape 
+		except:
+			return
 		
+		#update the labels selection
+		tempselect=False
+		for l in self.labels:
+			l.update()
+			#deselecting
+			if self.world.mouse_left_down:
+				if (self.x<self.world.mouse_x<self.x+self.width
+				   and self.y<self.world.mouse_y<self.y+self.height):
+					t = l.checkselect()
+					if t:
+						tempselect=True
+		if self.world.mouse_left_down:
+			if (self.x<self.world.mouse_x<self.x+self.width
+				   and self.y<self.world.mouse_y<self.y+self.height):
+				if not tempselect:
+					self.updatelabelselect(None)
+					
+					
+		#start select
+		if self.world.mouse_left_down:
+			#single
+			if self.selectsinglebox:
+				if (self.x<self.world.mouse_x<self.x+self.width
+				   and self.y<self.world.mouse_y<self.y+self.height):
+					self.selectbox[0]=self.world.mouse_x
+					self.selectbox[1]=self.world.mouse_y
+					self.selecting=True
+					self.selected=False
+			#multi
+			if self.selectmultibox:
+				if (self.x<self.world.mouse_x<self.x+self.width
+				   and self.y<self.world.mouse_y<self.y+self.height):
+					self.selectbox[0]=self.world.mouse_x
+					self.selectbox[1]=self.world.mouse_y
+					self.selecting=True
+					self.selected=False
+					self.lines=[]
+					self.intersections=[]
+					#self.labels=[]
+					self.tempautolabels=[]
+		#while selecting
+		if self.selecting:
+			self.selectbox[2]=clamp(self.world.mouse_x-self.selectbox[0],self.x-self.selectbox[0],self.x+self.width-self.selectbox[0])
+			self.selectbox[3]=clamp(self.world.mouse_y-self.selectbox[1],self.y-self.selectbox[1],self.y+self.height-self.selectbox[1])
+			
+			#single
+			if self.selectsinglebox:
+				if self.world.mouse_left_up:
+					self.selecting=False
+					self.selectmultibox=False
+					if abs(self.selectbox[2])>0 and abs(self.selectbox[3])>0:
+						self.selected=True
+						#create the label
+						#if not self.controller.actionbar.classes==None:
+						if not self.actionbar.selected==None:
+							labeltext=self.actionbar.classes[self.controller.actionbar.selected]
+							labelcolor=hsv_to_rgb(self.actionbar.colors[self.actionbar.selected].slideValue/360,1,1)
+						else:
+							labeltext="None"
+							labelcolor=(0,0,0)
+							
+						l=label(self.world,self,self.selectbox[0]-self.x,self.selectbox[1]-self.y,self.selectbox[2],self.selectbox[3],labeltext,labelcolor)
+						self.labels.append(l)
+						self.selectsinglebox=False
+						#select the label that was just created
+						self.updatelabelselect(l)
+						l.selected=True
+					else:
+						self.selected=False
+						return
+					
+			#multi match
+			if self.selectmultibox:
+				if self.world.mouse_left_up:
+					self.selecting=False
+					self.selectmultibox=False
+					if abs(self.selectbox[2])>0 and abs(self.selectbox[3])>0:
+						self.selected=True
+					else:
+						self.selected=False
+						return
+					#create the template
+					if self.selectbox[2]>0:
+						x1=self.selectbox[0]-self.x
+						x2=self.selectbox[0]+self.selectbox[2]-self.x
+					else:
+						x1=self.selectbox[0]+self.selectbox[2]-self.x
+						x2=self.selectbox[0]-self.x
+					if self.selectbox[3]>0:
+						y1=self.selectbox[1]-self.y
+						y2=self.selectbox[1]+self.selectbox[3]-self.y
+					else:
+						y1=self.selectbox[1]+self.selectbox[3]-self.y
+						y2=self.selectbox[1]-self.y
+						
+					template=self.img[y1:y2, x1:x2]
+					self.labels+=self.match.match(self.img,template)
+					
 	def loadlistimages(self,args=()):
 		root = Tk()
 		root.withdraw()
@@ -91,11 +223,13 @@ class controller:
 				
 	def loadimg(self,args=()):
 		i=args
-		self.selected=i
+		self.Fileselected=i
 		self.img=cv2.imread(self.imagelistFiles[i])
 		self.match.reset()
+		self.labels=[]
+		
 		#load the labels if the xml file exists
-		xmlfilename=self.imagelistFiles[self.selected][:-3]+"xml"
+		xmlfilename=self.imagelistFiles[self.Fileselected][:-3]+"xml"
 		if os.path.exists(xmlfilename):
 			root = ET.parse(xmlfilename).getroot()
 			for l in root.findall('object'):
@@ -118,8 +252,8 @@ class controller:
 				except:
 					c=(0,0,0)
 					
-				loadedlabel = label(self.world,self.match,x,y,w,h,name.text,c)
-				self.match.labels.append(loadedlabel)
+				loadedlabel = label(self.world,self,x,y,w,h,name.text,c)
+				self.labels.append(loadedlabel)
 			print("loaded xml")
 	def save(self,args=()):
 		try:
@@ -133,10 +267,10 @@ class controller:
 		folder.text = self.currentfolder
 		
 		filename = SubElement(annotation, 'filename')
-		filename.text = self.imagelistFiles[self.selected]
+		filename.text = self.imagelistFiles[self.Fileselected]
 		
 		path = SubElement(annotation, 'path')
-		path.text = os. getcwd() + "\\" +self.imagelistFiles[self.selected].replace("/","\\")
+		path.text = os. getcwd() + "\\" +self.imagelistFiles[self.Fileselected].replace("/","\\")
 		
 		source = SubElement(annotation, 'source')
 		database = SubElement(source, 'database')
@@ -153,7 +287,7 @@ class controller:
 		segmented = SubElement(annotation, 'segmented')
 		segmented.text="0"
 		
-		for l in self.match.labels:
+		for l in self.labels:
 			obj = SubElement(annotation, 'object')
 			
 			name = SubElement(obj, 'name')
@@ -177,7 +311,7 @@ class controller:
 		
 		xmlstring=prettifyXML(annotation)
 		#print(xmlstring)
-		xmlfilename=self.imagelistFiles[self.selected][:-3]+"xml"
+		xmlfilename=self.imagelistFiles[self.Fileselected][:-3]+"xml"
 		print(xmlfilename)
 		if os.path.exists(xmlfilename):
 			os. remove(xmlfilename)
@@ -185,7 +319,7 @@ class controller:
 		f = open(xmlfilename,"a")
 		f.write(xmlstring)
 		f.close()
-		self.imagehasxml[self.selected]=True
+		self.imagehasxml[self.Fileselected]=True
 		print("saved xml")
 		
 	def pagedecrease(self,args=()):
@@ -196,7 +330,7 @@ class controller:
 		
 	def draw(self):
 		try:
-			self.match.draw(self.img)
+			
 			self.actionbar.draw()
 			#draw the save button
 			savebuttonbox=[700, 5, 64, 32]
@@ -233,7 +367,7 @@ class controller:
 		ul=min(self.filesperpage*(self.page),totalimages)
 		for a,i in zip(range(ll,ul,1),range(0,self.filesperpage)):
 		#for i in range(len(self.imagelist)):
-			if a!=self.selected:
+			if a!=self.Fileselected:
 				c=(200,200,200)
 				hc=(175,175,175)
 				if self.imagehasxml[a]:
@@ -243,5 +377,61 @@ class controller:
 			else:
 				drawbox([10,52+i*32,64,32], self.world, (200,200,0), (175,175,0), None, text=str(self.imagelist[a]))
 		
-
+		
+		
+		try:
+			_,_,_ = self.img.shape 
+		except:
+			return
+		self.world.screen.blit(cvimage_to_pygame(self.img), (self.x, self.y))
+		#select box
+		if self.selecting:
+			pygame.draw.rect(self.world.screen, (0,255,0), self.selectbox, 3)
+		
+		#draw the selectMutlibox toggle
+		box=[self.x,self.y-45,50,32]
+		if checkmousebox(box,[self.world.mouse_x,self.world.mouse_y]):
+			if self.world.mouse_left_down:
+				self.selectmultibox = not self.selectmultibox
+				self.selectsinglebox = False
+				
+			if self.selectmultibox:
+				c = (10,200,10)
+			else:
+				c = (200,200,200)
+		else:
+			if self.selectmultibox:
+				c=(10,180,10)
+			else:
+				c=(180,180,180)
+				
+		pygame.draw.rect(self.world.screen, c,(box[0],box[1],box[2],box[3]), 0)
+		pygame.draw.rect(self.world.screen, (0,0,0),(box[0]-1,box[1]-1,box[2]+1,box[3]+1), 1)
+		self.world.screen.blit(self.world.fontobject.render("AUTO", 1, (0,0,0)),(box[0]+5, box[1]+5))
+		
+		#draw the add single box
+		box=[self.x+75,self.y-45,64,32]
+		if checkmousebox(box,[self.world.mouse_x,self.world.mouse_y]):
+			if self.world.mouse_left_down:
+				self.selectsinglebox = not self.selectsinglebox
+				self.selectmultibox = False
+				
+			if self.selectsinglebox:
+				c = (10,200,10)
+			else:
+				c = (200,200,200)
+		else:
+			if self.selectsinglebox:
+				c=(10,180,10)
+			else:
+				c=(180,180,180)
+				
+		pygame.draw.rect(self.world.screen, c,(box[0],box[1],box[2],box[3]), 0)
+		pygame.draw.rect(self.world.screen, (0,0,0),(box[0]-1,box[1]-1,box[2]+1,box[3]+1), 1)
+		self.world.screen.blit(self.world.fontobject.render("ADD 1", 1, (0,0,0)),(box[0]+5, box[1]+5))
+		
+		
+		self.match.draw(self.img)
+		for l in self.labels:
+			l.draw()
         

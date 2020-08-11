@@ -1,5 +1,5 @@
 import pygame
-from controller import controller
+from controller2 import controller
 
 class world:
 	def __init__(self):
@@ -105,4 +105,3 @@ class world:
 
 w=world()
 w.update()
-            
