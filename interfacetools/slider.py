@@ -63,8 +63,9 @@ class slider:
 		
 	def draw(self,x=0,y=0,displayHue=False):
 		self.previous_slie=self.slide
-		self.x=x
-		self.y=y
+		if x!=0 and y!=0:
+			self.x=x
+			self.y=y
 		xx=0#self.controller.xx
 		yy=0#self.controller.yy
         
@@ -94,4 +95,5 @@ class slider:
         
 		self.world.screen.blit(self.world.fontobject.render(self.label+": "+str(self.slideValue), 1, (0,0,0)),(self.x+xx, self.y+yy-20))
 		#print(hsv_to_rgb(self.slideValue,100,100))
-		pygame.draw.rect(self.world.screen, hsv_to_rgb(self.slideValue/360,1,1), (self.x+65,self.y-20,10,10))
+		if displayHue:
+			pygame.draw.rect(self.world.screen, hsv_to_rgb(self.slideValue/360,1,1), (self.x+65,self.y-20,10,10))

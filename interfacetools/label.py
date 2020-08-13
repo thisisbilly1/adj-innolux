@@ -3,7 +3,7 @@ import numpy as np
 from utils import checkmousebox, clamp
 
 class label:
-	def __init__(self, world, controller, x, y, w, h, label, color,acc=1):
+	def __init__(self, world, controller, x, y, w, h, label, color,accuracy=100):
 		self.world=world
 		self.controller=controller
 		self.x=x
@@ -11,9 +11,17 @@ class label:
 		self.w=w
 		self.h=h
 		
+		
+		if w<0:
+			self.x=x+w
+			self.w=abs(w)
+		if h<0:
+			self.y=y+h
+			self.h=abs(h)
+		
 		self.color=color
 		self.label=label
-		self.acc=acc
+		self.accuracy=round(accuracy*100)/100
 		
 		self.selected=False
 		
@@ -64,11 +72,11 @@ class label:
 		box = [x, y, self.w, self.h]
 		pygame.draw.rect(self.world.screen, self.color, box, 3)	
 		
-		w,h = self.world.fontobject.size(self.label)
+		w,h = self.world.fontobject.size(str(self.label)+":"+str(self.accuracy)+"%")
 		w = max(5,w)
 		labelbox=[x+5,y-17,w,15]
 		pygame.draw.rect(self.world.screen, (255,255,255), labelbox)	
-		self.world.screen.blit(self.world.fontobject.render(str(self.label), 1, (0,0,0)),(box[0]+5, box[1]-15))
+		self.world.screen.blit(self.world.fontobject.render(str(self.label)+":"+str(self.accuracy)+"%", 1, (0,0,0)),(box[0]+5, box[1]-15))
 		
 		#draw the handles
 		if self.selected:
@@ -126,7 +134,7 @@ class label:
 				if self.world.mouse_left:
 					self.x = clamp(self.world.mouse_x-self.controller.x-self.w/2, 0, self.controller.width-self.w)
 					self.y = clamp(self.world.mouse_y-self.controller.y-self.h/2, 0, self.controller.height-self.h)
-					
+					self.accuracy=100
 				else:
 					self.selectmove=False
 					self.controller.labelhandled=False
@@ -137,6 +145,7 @@ class label:
 					self.y = clamp(self.world.mouse_y-self.controller.y, 0, self.selectedcords[1]-yy-10)
 					self.w = max(self.selectedcords[0] - clamp(self.world.mouse_x,xx,xx+self.controller.width),10)
 					self.h = max(self.selectedcords[1] - clamp(self.world.mouse_y,yy,yy+self.controller.height),10)
+					self.accuracy=100
 				else:
 					self.selecttr=False
 					self.controller.labelhandled=False
@@ -145,6 +154,7 @@ class label:
 				if self.world.mouse_left:
 					self.w = clamp(self.world.mouse_x - self.selectedcords[0],10, self.controller.width-self.x)#min(self.controller.width -self.x, self.world.mouse_x - self.selectedcords[0])
 					self.h = clamp(self.world.mouse_y - self.selectedcords[1],10, self.controller.height-self.y)#min(self.controller.height -self.y, self.world.mouse_y - self.selectedcords[1])
+					self.accuracy=100
 				else:
 					self.selectbl=False
 					self.controller.labelhandled=False

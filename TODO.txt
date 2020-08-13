@@ -1,0 +1,11 @@
+-add sliders for accuracy? 
+	-kind of bad lol
+
+-save templates and auto load them
+	-drop down to select what one you want
+		-file name
+		-and then a manual select at the start
+
+-find areas
+
+save template to automatically detect

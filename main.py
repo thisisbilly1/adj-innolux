@@ -49,7 +49,7 @@ class world:
 			self.mouse_left_previous=self.mouse_left
 			self.mouse_right_previous=self.mouse_right
 			#mouse inputs
-			mouse = pygame.mouse.get_pos() 
+			mouse = pygame.mouse.get_pos()
 			self.mouse_x=mouse[0]
 			self.mouse_y=mouse[1]
 			clicks = pygame.mouse.get_pressed()

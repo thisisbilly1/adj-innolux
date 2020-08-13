@@ -1,7 +1,8 @@
 import pygame
+from utils import cvimage_to_pygame, clamp
+
 '''
 finds the two templates, and then finds the areas around those templates
-
 '''
 
 class findareas:
@@ -15,10 +16,8 @@ class findareas:
 		self.height=0
 		
 	def draw(self, img):
-		self.img = img
-		try:
-			_,_,_ = self.img.shape 
-		except:
+		pass
+		if img is None:
 			return
-			
+		_,_,_ = self.img.shape 
 		self.world.screen.blit(cvimage_to_pygame(img), (self.x, self.y))

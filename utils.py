@@ -55,12 +55,12 @@ def drawbox(box, world, color, hovercolor, clickfunction, clickargs=(), text="",
 	c=color
 	if checkmousebox(box,[world.mouse_x,world.mouse_y]):
 		c=hovercolor
-		if world.mouse_left_down:
+		if world.mouse_left_up:
 			if clickfunction!=None:
 				clickfunction(args=clickargs)
 	else:
 		if offclickfunction!=None:
-			if world.mouse_left_down:
+			if world.mouse_left_up:
 				offclickfunction()
                 
 	pygame.draw.rect(world.screen, c,(box[0],box[1],box[2],box[3]), 0)

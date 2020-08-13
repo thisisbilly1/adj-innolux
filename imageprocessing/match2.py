@@ -1,9 +1,12 @@
 import cv2
 import numpy as np
-from utils import cvimage_to_pygame, clamp, group_points, get_distance, checkmousebox, hsv_to_rgb
+from utils import cvimage_to_pygame, clamp, group_points, get_distance, checkmousebox, hsv_to_rgb, folderLoad
 import pygame
 from regression import line, isNaN, intersection
 from interfacetools.label import label 
+from interfacetools.slider import slider
+
+import os
 
 '''
 1. select region
@@ -27,16 +30,26 @@ class match:
 		self.lines=[]#line(self.world, x, y, [1,2,3], [1,2,3])
 		self.intersections=[]
 		
-
-	
+		self.accuracyslider=slider(self.world,400,23,"accuracy",sliderange=(.01,1),start=.9,incriment=.01)
+		
+		
+		
 	def reset(self):
 		self.tempautolabels=[]
 		self.template=None
 		self.lines=[]
 		self.intersections=[]
 	
-	def match(self,img,template):
-		self.template=template
+	def match(self,img,template=None):
+		if not template is None:
+			self.template=template
+		else:
+			if self.template is None:
+				return
+			
+		#cv2.imwrite("test.png",template)
+		self.tempautolabels=[]
+		
 		self.templateheight,self.templatewidth,_=self.template.shape
 		
 		#run template matching, get minimum val
@@ -47,7 +60,7 @@ class match:
 		min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
 		
 		# create threshold from min val, find where sqdiff is less than thresh
-		min_thresh = .9# (min_val + 1e-6) * 1.5
+		min_thresh = self.accuracyslider.slideValue#.9# (min_val + 1e-6) * 1.5
 		match_locations = np.where(res >= min_thresh)
 		
 		match_locations = (np.array(match_locations).T).tolist()
@@ -62,7 +75,7 @@ class match:
 			labelcolor=(0,0,0)
 			
 		for m in match_locations:
-			l=label(self.world,self.controller,m[1],m[0],self.templatewidth,self.templateheight,labeltext,(0,255,0))
+			l=label(self.world,self.controller,m[1],m[0],self.templatewidth,self.templateheight,labeltext,(0,255,0),accuracy=res[m[0]][m[1]]*100)
 			#self.labels.append(l)
 			self.tempautolabels.append(l)
 			
@@ -160,12 +173,14 @@ class match:
 				self.tempautolabels.append(l)
 				#self.miss_locations.append(point)
 		print("total labels: "+str(len(self.tempautolabels)))
-		#add the temp labels and the labels, delete the temp labels
-		#self.labels=self.labels+self.tempautolabels
+		#return self.tempautolabels
+	
+	def confirm(self):
 		temp=self.tempautolabels
 		self.tempautolabels=[]
 		return temp
-		#self.tempautolabels=[]
+	def cancel(self):
+		self.tempautolabels=[]
 		
 	def draw(self, img):
 		if img is None:
@@ -173,7 +188,13 @@ class match:
 		height,width,_ = img.shape 
 		for l in self.lines:
 			l.draw(width,height)
+			
+		for l in self.tempautolabels:
+			l.draw()
 		
+		
+		
+		#self.accuracyslider.draw()
 		#template image
 		try:
 			self.world.screen.blit(cvimage_to_pygame(self.template),(self.x, self.y+height+10))

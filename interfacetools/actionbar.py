@@ -1,5 +1,5 @@
 import pygame
-from utils import drawbox, hsv_to_rgb
+from utils import drawbox, hsv_to_rgb, clamp
 from interfacetools.slider import slider
 import pickle
 import os
@@ -55,9 +55,9 @@ class actionbar:
 		#print(self.classes[i])
 		self.selected=i
 		#try to update the selected label box to the current selected
-		if self.controller.match.labelselect!=None:
-			self.controller.match.labelselect.label=self.classes[i]
-			self.controller.match.labelselect.color=hsv_to_rgb(self.colors[i].slideValue/360,1,1)
+		if self.controller.labelselect!=None:
+			self.controller.labelselect.label=self.classes[i]
+			self.controller.labelselect.color=hsv_to_rgb(self.colors[i].slideValue/360,1,1)
 	
 	def updatelabel(self,args=()):
 		i=args[0]
@@ -180,7 +180,8 @@ class actionbar:
 					#hc=(0,175,0)
 				
 					c=hsv_to_rgb(self.colors[i].slideValue/360,1,1)
-					hc=(c[0]-25,c[1]-25,c[2]-25)
+					#hc=(clamp(c[0]-25,0,255),clamp(c[1]-25,0,255),c[2]-25)
+					hc=[clamp(x-25,0,255) for x in c]
 					
 				if self.keybinds[i]==None:
 					txt="NA : "+str(self.classes[i])
