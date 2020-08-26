@@ -3,7 +3,7 @@ import numpy as np
 from utils import checkmousebox, clamp
 
 class label:
-	def __init__(self, world, controller, x, y, w, h, label, color,accuracy=100):
+	def __init__(self, world, controller, x, y, w, h, label, color,accuracy=100, template=""):
 		self.world=world
 		self.controller=controller
 		self.x=x
@@ -11,6 +11,7 @@ class label:
 		self.w=w
 		self.h=h
 		
+
 		
 		if w<0:
 			self.x=x+w
@@ -22,6 +23,7 @@ class label:
 		self.color=color
 		self.label=label
 		self.accuracy=round(accuracy*100)/100
+		self.template=template
 		
 		self.selected=False
 		
@@ -29,7 +31,8 @@ class label:
 		self.selectbl=False
 		self.selectedcords=[]
 		self.selectmove=False
-		
+	def __str__(self):
+		return "["+str(self.x)+","+str(self.y)+","+str(self.w)+","+str(self.h)+"]"
 	def reset(self):
 		self.selecttr=False
 		self.selectbr=False
@@ -72,12 +75,20 @@ class label:
 		box = [x, y, self.w, self.h]
 		pygame.draw.rect(self.world.screen, self.color, box, 3)	
 		
-		w,h = self.world.fontobject.size(str(self.label)+":"+str(self.accuracy)+"%")
-		w = max(5,w)
-		labelbox=[x+5,y-17,w,15]
-		pygame.draw.rect(self.world.screen, (255,255,255), labelbox)	
-		self.world.screen.blit(self.world.fontobject.render(str(self.label)+":"+str(self.accuracy)+"%", 1, (0,0,0)),(box[0]+5, box[1]-15))
-		
+		if self.controller.labelshowtext:
+			if self.accuracy!=100 and self.controller.labelshowpercent:
+				label=str(self.label)+":"+str(self.accuracy)+"%"
+			else:
+				label=self.label
+			#else:
+				#label=str(self.label)+":"+str(self.template)+":"+str(self.accuracy)+"%"
+				
+			w,h = self.world.fontobject.size(label)
+			w = max(5,w)
+			labelbox=[x+5,y-17,w,15]
+			pygame.draw.rect(self.world.screen, (255,255,255), labelbox)	
+			self.world.screen.blit(self.world.fontobject.render(label, 1, (0,0,0)),(box[0]+5, box[1]-15))
+			
 		#draw the handles
 		if self.selected:
 			xx = self.controller.x

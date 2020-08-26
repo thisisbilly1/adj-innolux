@@ -58,12 +58,12 @@ class actionbar:
 		if self.controller.labelselect!=None:
 			self.controller.labelselect.label=self.classes[i]
 			self.controller.labelselect.color=hsv_to_rgb(self.colors[i].slideValue/360,1,1)
+			self.controller.labelselect.accuracy=100
 	
 	def updatelabel(self,args=()):
 		i=args[0]
 		part=args[1]
 		self.selectededititem=[i,part]
-		pass
 	
 	def deletelabel(self,args=()):
 		self.selectededititem=[None,None]
@@ -93,6 +93,7 @@ class actionbar:
 							if self.controller.labelselect!=None:
 								self.controller.labelselect.label=self.classes[i]
 								self.controller.labelselect.color=hsv_to_rgb(self.colors[i].slideValue/360,1,1)
+								self.controller.labelselect.accuracy=100
 		#edit the labels
 		else:
 			for i in range(len(self.classes)):

@@ -40,7 +40,7 @@ class match:
 		self.lines=[]
 		self.intersections=[]
 	
-	def match(self,img,template=None):
+	def match(self, img, template=None, templatename=""):
 		if not template is None:
 			self.template=template
 		else:
@@ -48,7 +48,8 @@ class match:
 				return
 			
 		#cv2.imwrite("test.png",template)
-		self.tempautolabels=[]
+		#self.tempautolabels=[]
+		templabel=[]
 		
 		self.templateheight,self.templatewidth,_=self.template.shape
 		
@@ -75,17 +76,18 @@ class match:
 			labelcolor=(0,0,0)
 			
 		for m in match_locations:
-			l=label(self.world,self.controller,m[1],m[0],self.templatewidth,self.templateheight,labeltext,(0,255,0),accuracy=res[m[0]][m[1]]*100)
+			l=label(self.world,self.controller,m[1],m[0],self.templatewidth,self.templateheight,labeltext,(0,255,0),accuracy=res[m[0]][m[1]]*100,template=templatename)
 			#self.labels.append(l)
-			self.tempautolabels.append(l)
+			#self.tempautolabels.append(l)
+			templabel.append(l)
 			
 		#print(self.match_locations)
-		return self.predict_missing_boxes(labeltext)
+		self.predict_missing_boxes(labeltext,templabel,templatename=templatename)
 			
 				
 			
 		
-	def predict_missing_boxes(self,goodlabeltext):
+	def predict_missing_boxes(self,goodlabeltext,templabel,templatename=""):
 		self.lines=[]
 		self.intersections=[]
 		#get the defaults from the actionbar
@@ -96,7 +98,7 @@ class match:
 			labeltext = "NONE"
 			labelcolor = (0,0,0)
 			
-		for p in self.tempautolabels:
+		for p in templabel:#self.tempautolabels:
 			x=p.x
 			y=p.y
 			#print(str(x)+","+str(y))
@@ -160,7 +162,7 @@ class match:
 			#point = [p[1],p[0]]
 			inMatch=False
 			#for a in self.match_locations:
-			for a in self.tempautolabels:
+			for a in templabel:#self.tempautolabels:
 				if a.label==goodlabeltext:#"match":
 					x=a.x
 					y=a.y
@@ -169,10 +171,12 @@ class match:
 						#if not point in self.match_locations:
 						inMatch=True
 			if not inMatch:
-				l=label(self.world,self.controller,p[0],p[1],self.templatewidth,self.templateheight,labeltext,labelcolor)
-				self.tempautolabels.append(l)
+				l=label(self.world,self.controller,p[0],p[1],self.templatewidth,self.templateheight,labeltext,labelcolor,template=templatename)
+				templabel.append(l)
+				#self.tempautolabels.append(l)
 				#self.miss_locations.append(point)
-		print("total labels: "+str(len(self.tempautolabels)))
+		print("total labels: "+str(len(templabel)))
+		self.tempautolabels+=templabel
 		#return self.tempautolabels
 	
 	def confirm(self):

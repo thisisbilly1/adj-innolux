@@ -43,7 +43,6 @@ def intersection(l1,l2):
 			x = (b2-b1)/(m1-m2)
 		except:
 			x = None
-	
 	return x
 
 class line:
@@ -57,7 +56,8 @@ class line:
 		
 		self.slope, self.intercept, self.r_value, self.p_value, self.std_err = stats.linregress(self.xlist,self.ylist)
 		#print(self.slope)
-		
+	def __str__(self):
+		return "y="+str(self.slope)+"x + "+str(self.intercept)
 	def returny(self,x):
 		return self.slope*x+self.intercept
 		 

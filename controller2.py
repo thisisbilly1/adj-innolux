@@ -11,6 +11,7 @@ from utils import clamp, cvimage_to_pygame, drawbox, prettifyXML, hsv_to_rgb,che
 
 #from imageprocessing.edge import edge
 from imageprocessing.match2 import match
+from imageprocessing.findarea import findareas
 from interfacetools.actionbar import actionbar
 from interfacetools.dropdown import dropdown
 from interfacetools.label import label 
@@ -39,6 +40,7 @@ class controller:
 		self.img=None
 		#self.edge=edge(self.world,self,94,10)
 		self.match = match(self.world,self,self.x,self.y)
+		self.findarea = findareas(self.world,self,self.x,self.y)
 		#self.match = match(self.world,self,94,50)
 		self.actionbar=actionbar(self.world,self,1125,50)
 		
@@ -51,10 +53,13 @@ class controller:
 		
 		#labels
 		self.labels=[]
+		self.labelshowtext=True
+		self.labelshowpercent=False
 		self.labelhandled=False
 		self.labelselect=None
 		
 		self.selectmultibox=False
+		self.selectfindarea=False
 		self.selectsinglebox=False
 		
 		self.selecting=False
@@ -67,7 +72,12 @@ class controller:
 		for file in os.listdir("./templates"):
 			if file.endswith(".png") or file.endswith(".jpg") or file.endswith(".JPG") or file.endswith(".PNG"):
 				imglist.append(str(file))
-		self.templatedropdown=dropdown(self.world,400,10,imglist,label="templates")
+		self.templatedropdown=dropdown(self.world,400,10,imglist,label="templates",customfunction=self.updatetemplate)
+		
+	def updatetemplate(self,args=()):
+		self.match.reset()
+		if args!=0:
+			self.match.match(self.img,cv2.imread("./templates/"+str(self.templatedropdown.options[args])),templatename=self.templatedropdown.options[args])
 		
 		
 	def updatelabelselect(self, label):
@@ -205,7 +215,7 @@ class controller:
 						
 					template=self.img[y1:y2, x1:x2]
 					#self.labels+=
-					self.match.match(self.img,template)
+					self.match.match(self.img,template,templatename="")
 					
 	def loadlistimages(self,args=()):
 		root = Tk()
@@ -341,26 +351,60 @@ class controller:
 		totalpages=max(len(self.imagelistFiles)//self.filesperpage,1)
 		self.page=min(totalpages,self.page+1)
 	
+		
 	def autoselect(self,args=()):
 		self.selectmultibox = True
 		self.selectsinglebox = False
-		
+		self.selectfindarea = False
+		#auto match all the templates
+		for i in range(1,len(self.templatedropdown.options)):
+			self.match.match(self.img,cv2.imread("./templates/"+str(self.templatedropdown.options[i])),templatename=self.templatedropdown.options[i])
+			
 	def autoconfirm(self,args=()):
 		self.selectmultibox = False
 		self.labels+=self.match.confirm()
-	
 	def autocancel(self,args=()):
 		self.selectmultibox = False
 		self.match.cancel()
+	def autoclear(self,args=()):
+		self.match.cancel()
 		
+	def areaselect(self,args=()):
+		self.selectmultibox = False
+		self.selectsinglebox = False
+		self.selectfindarea = True
+		self.findarea.find(self.labels)
+		
+	def areaconfirm(self,args=()):
+		self.selectfindarea = False
+		self.labels+=self.findarea.confirm()
+	def areacancel(self,args=()):
+		self.selectfindarea = False
+		self.findarea.cancel()
+		
+	def togglelabeltext(self,args=()):
+		self.labelshowtext=not self.labelshowtext
+	def togglelabelprecent(self,args=()):
+		self.labelshowpercent=not self.labelshowpercent
 		
 	def draw(self):
 		try:
 			
 			self.actionbar.draw()
 			#draw the save button
-			savebuttonbox=[700, 5, 64, 32]
-			drawbox(savebuttonbox,self.world,(200,200,200),(175,175,175),self.save,text="save")
+			drawbox([700, 5, 64, 32],self.world,(200,200,200),(175,175,175),self.save,text="save")
+			
+			#toggle labels drawing the text labels
+			if self.labelshowtext:	
+				drawbox([770, 5, 64, 32],self.world,(0,200,0),(0,175,0),self.togglelabeltext,text="toggle")
+			else:
+				drawbox([770, 5, 64, 32],self.world,(200,200,200),(175,175,175),self.togglelabeltext,text="toggle")
+				
+			#toggle labels drawing the % 
+			if self.labelshowpercent:	
+				drawbox([834, 5, 32, 32],self.world,(0,200,0),(0,175,0),self.togglelabelprecent,text="%")
+			else:
+				drawbox([834, 5, 32, 32],self.world,(200,200,200),(175,175,175),self.togglelabelprecent,text="%")
 			#self.edge.draw(self.img)
 		except Exception as e:
 			print(e)
@@ -415,41 +459,54 @@ class controller:
 			pygame.draw.rect(self.world.screen, (0,255,0), self.selectbox, 3)
 			
 			
-		#draw the autoselect box
-		box=[self.x+75,self.y-45,64,32]
+		#draw the findarea box
 		if not self.selectmultibox:
-			drawbox(box, self.world, (200,200,200), (175,175,175), self.autoselect, text="Auto")
-		else:
-			drawbox(box, self.world, (0,200,0), (0,175,0), self.autoconfirm, text="confirm")
-			drawbox([x+y for x,y in zip(box,[75,0,0,0])], self.world, (200,0,0), (175,0,0), self.autocancel, text="cancel")
-			
-			self.templatedropdown.draw()
+			box=[self.x+150,self.y-45,64,32]
+			if not self.selectfindarea:
+				drawbox(box, self.world, (200,200,200), (175,175,175), self.areaselect, text="Area")
+			else:
+				drawbox(box, self.world, (0,200,0), (0,175,0), self.areaconfirm, text="confirm")
+				drawbox([x+y for x,y in zip(box,[75,0,0,0])], self.world, (200,0,0), (175,0,0), self.areacancel, text="cancel")
+				
+		#draw the autoselect box
+		if not self.selectfindarea:
+			box=[self.x+75,self.y-45,64,32]
+			if not self.selectmultibox:
+				drawbox(box, self.world, (200,200,200), (175,175,175), self.autoselect, text="Auto")
+			else:
+				drawbox(box, self.world, (0,200,0), (0,175,0), self.autoconfirm, text="confirm")
+				drawbox([x+y for x,y in zip(box,[75,0,0,0])], self.world, (200,0,0), (175,0,0), self.autocancel, text="cancel")
+				drawbox([x+y for x,y in zip(box,[150,0,0,0])], self.world, (0,0,200), (0,0,175), self.autoclear, text="clear")
+				
+				self.templatedropdown.draw()
 		
 		#draw the add single box
-		box=[self.x,self.y-45,64,32]
-		if not self.selectmultibox:
-			if checkmousebox(box,[self.world.mouse_x,self.world.mouse_y]):
-				if self.world.mouse_left_down:
-					self.selectsinglebox = not self.selectsinglebox
-					self.updatelabelselect(None)
-				if self.selectsinglebox:
-					c = (10,200,10)
+		if not self.selectfindarea and not self.selectmultibox:
+			box=[self.x,self.y-45,64,32]
+			if not self.selectmultibox:
+				if checkmousebox(box,[self.world.mouse_x,self.world.mouse_y]):
+					if self.world.mouse_left_down:
+						self.selectsinglebox = not self.selectsinglebox
+						self.updatelabelselect(None)
+					if self.selectsinglebox:
+						c = (10,200,10)
+					else:
+						c = (200,200,200)
 				else:
-					c = (200,200,200)
+					if self.selectsinglebox:
+						c=(10,180,10)
+					else:
+						c=(180,180,180)
 			else:
-				if self.selectsinglebox:
-					c=(10,180,10)
-				else:
-					c=(180,180,180)
-		else:
-			c=(150,150,150)
-				
-		pygame.draw.rect(self.world.screen, c,(box[0],box[1],box[2],box[3]), 0)
-		pygame.draw.rect(self.world.screen, (0,0,0),(box[0]-1,box[1]-1,box[2]+1,box[3]+1), 1)
-		self.world.screen.blit(self.world.fontobject.render("ADD 1", 1, (0,0,0)),(box[0]+5, box[1]+5))
-		
+				c=(150,150,150)
+					
+			pygame.draw.rect(self.world.screen, c,(box[0],box[1],box[2],box[3]), 0)
+			pygame.draw.rect(self.world.screen, (0,0,0),(box[0]-1,box[1]-1,box[2]+1,box[3]+1), 1)
+			self.world.screen.blit(self.world.fontobject.render("ADD 1", 1, (0,0,0)),(box[0]+5, box[1]+5))
+			
 		
 		self.match.draw(self.img)
+		self.findarea.draw(self.img)
 		for l in self.labels:
 			l.draw()
         
