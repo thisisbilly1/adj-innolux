@@ -1,6 +1,9 @@
 import pygame
 from utils import cvimage_to_pygame, clamp
 from interfacetools.label import label 
+import cv2
+import numpy as np
+
 '''
 finds the two templates, and then finds the areas around those templates
 '''
@@ -15,6 +18,9 @@ class findareas:
 		self.tempautolabels=[]
 		self.width=0
 		self.height=0
+		self.img=None
+		
+		self.templateimages=[]#((x,y),img)
 		
 	def inrow(self,rows,label):
 		for r in rows:
@@ -23,8 +29,40 @@ class findareas:
 					return True
 		return False
 	
-	def find(self,labels):
-		#loop through the labels and figure out what ones are in the rows
+	def defectedAreaCheck(self,l):
+		#get the image
+		x1=int(l.x)
+		y1=int(l.y)
+		x2=int(l.x+l.w)
+		y2=int(l.y+l.h)
+		
+		#crop and thresh
+		cropped = self.img[y1:y2, x1:x2]
+		gray = cv2.cvtColor(cropped,cv2.COLOR_BGR2GRAY)
+		#thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 2)
+		ret,thresh = cv2.threshold(gray,127,255,cv2.THRESH_BINARY)
+		
+		#open the image
+		kernel = np.ones((5,5),np.uint8)
+		#opening = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
+		
+		#contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+		#cv2.drawContours(cropped, contours, -1, (0,255,0), 3)
+		
+		#self.templateimages.append(((x1,y1),thresh))
+		
+		#check for black spots/blobs
+		whiteCount=np.count_nonzero(thresh)
+		percent=whiteCount/(l.h*l.w)
+		print(str(percent*100)+" %")
+		#change the label to bad it's too much
+		if percent<.9:
+			l.color=(255,0,0)
+			l.label="ng"
+			
+	def find(self,labels,img):
+		self.img=img
+		#loop through the labels and figure out what labels are in the rows
 		rows=[]
 		for l1 in self.controller.labels:
 			if not self.inrow(rows,l1):
@@ -65,6 +103,7 @@ class findareas:
 					ww=r[i].w
 					yy=r[i].y+r[i].h
 					hh=r[i].h*.55
+					
 					l=label(self.world,self.controller,xx,yy,ww,hh,"1",(241,255,0))
 					self.tempautolabels.append(l)
 					
@@ -72,13 +111,13 @@ class findareas:
 					xx=r[i].x+r[i].w
 					ww=r[i+1].x-xx 
 					
-					d=.55
+					d=.48
 					d1=.3
 					
-					totaly=min(r[i].y,r[i+1].y)
-					totalh=(max(r[i].y+r[i].h,r[i+1].y+r[i+1].h)-totaly)
+					miny=min(r[i].y,r[i+1].y) + (max(r[i].y+r[i].h,r[i+1].y+r[i+1].h)-min(r[i].y,r[i+1].y))*.15
+					totalh=(max(r[i].y+r[i].h,r[i+1].y+r[i+1].h)-miny)
 					
-					yy1=totaly
+					yy1=miny
 					hh1=totalh*d
 					
 					yy2=yy1+hh1
@@ -97,104 +136,45 @@ class findareas:
 					self.tempautolabels.append(l)
 					
 				else:
-					xx=r[i].x+r[i].w
-					yy=min(r[i].y,r[i+1].y)
+					xx=r[i].x+r[i].w + (r[i+1].x-r[i].x+r[i].w)*.025
+					yy=min(r[i].y,r[i+1].y)+(max(r[i].y+r[i].h,r[i+1].y+r[i+1].h)-min(r[i].y,r[i+1].y))*.15
+					
 					ww=r[i+1].x-xx 
-					hh=(max(r[i].y+r[i].h,r[i+1].y+r[i+1].h)-yy)*1.1
+					hh=(max(r[i].y+r[i].h,r[i+1].y+r[i+1].h)-yy)
+					
+					#yy1=yy-hh*.05
+					#hh1=hh*95
 					
 					l=label(self.world,self.controller,xx,yy,ww,hh,"5",(0,0,255))
 					self.tempautolabels.append(l)
-				
-				
-		'''
-		for l1 in self.controller.labels:
-			temp=[]
-			#check if in row already
-			inrow=False
-			for r in rows:
-				if inrow:
-					break
-				for l in r:
-					if (l.x==l1.x and l.y==l1.y and l.h==l1.h and l.w==l1.w):
-						inrow=True
-			if inrow:
-				continue
-			#else than look at all the other labels
-			for l2 in self.controller.labels:
-				if not(l2.x==l1.x and l2.y==l1.y and l2.h==l1.h and l2.w==l1.w):
-					if ((l1.y<l2.y<l1.y+l1.h)
-					or (l2.y<l1.y<l2.y+l2.h)):
-						temp.append(l2)
-			if temp:
-				rows.append(temp)
-				print(len(temp))
-				
-		#print(len(rows))
-		for r in rows:
-			print(["("+str(l.y)+","+str(l.h)+")" for l in r])
-		'''
-		'''
-		while sortedlabels:
-			ref = sortedlabels.pop(0)
-			key="["+str(ref.y)+","+str(ref.h)+"]"
-			groups[key] = [ref]
-			#print([ref])
-			for i, point in enumerate(sortedlabels):
-				#d = get_distance(ref, point)
-				if (ref.y<point.y<ref.y+ref.h
-				or point.y<ref.y<point.y+point.h):
-					#print(point)
-					groups[key].append(sortedlabels[i])
-					sortedlabels[i] = None
-			sortedlabels = list(filter(lambda x: x is not None, sortedlabels))
-			'''
-
-		# perform average operation on each group
-		#return [[int(np.mean([x[0] for x in groups[arr]])), int(np.mean([x[1] for x in groups[arr]]))] for arr in groups]
-		'''
-		#check the rows
-		for r in rows:
-			###!!!TODO: check the y + the height
-			if (r-tolerance<p.y<r+tolerance
-				or r-tolerance<p.y+p.h<r+tolerance):
-				inlist=True
-				
-				
-		if not inlist:
-			rows.append(p.y)
-		'''
-	'''
-	sortedlabels=sorted(self.controller.labels,key=lambda x:(x.y,x.x))
-	for i,p in enumerate(sortedlabels):
-		try:
-			xx = p.x+p.w
-			yy = p.y
-			if (p.y<sortedlabels[i+1].y<p.y+p.h
-			or p.y<sortedlabels[i+1].y+sortedlabels[i+1].h<p.y+p.h):
-				ww = sortedlabels[i+1].x-xx
-				hh = (sortedlabels[i+1].y+sortedlabels[i+1].h)-p.y
-				l=label(self.world,self.controller,xx,yy,ww,hh,"region test",(0,0,255))
-				self.tempautolabels.append(l)
-			else:
-				continue
-		except:
-			continue
-			
-		'''
-		#pass
 		
+		#check the labels for defects
+		for l in self.tempautolabels:
+			self.defectedAreaCheck(l)
+			
+			
 	def confirm(self):
 		temp=self.tempautolabels
 		self.tempautolabels=[]
+		self.templateimages=[]
 		return temp
+	
 	def cancel(self):
 		self.tempautolabels=[]
-		
+		self.templateimages=[]
 		
 	def draw(self, img):
 		if img is None:
 			return
 		self.height,self.width,_ = img.shape 
 		
+		
+		
+		
+		for l in self.templateimages:
+			self.world.screen.blit(cvimage_to_pygame(l[1]), (l[0][0]+self.x,l[0][1]+self.y))
+		
 		for l in self.tempautolabels:
-			l.draw()
+			l.draw(thickness=1)
+		
+			

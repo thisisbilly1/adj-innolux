@@ -242,7 +242,6 @@ class controller:
 					self.imagelist.append(str(file)[0:6]+"...")
 				else:
 					self.imagelist.append(str(file))
-		#print(self.imagelist)
 				
 	def loadimg(self,args=()):
 		i=args
@@ -373,7 +372,7 @@ class controller:
 		self.selectmultibox = False
 		self.selectsinglebox = False
 		self.selectfindarea = True
-		self.findarea.find(self.labels)
+		self.findarea.find(self.labels,self.img)
 		
 	def areaconfirm(self,args=()):
 		self.selectfindarea = False
@@ -391,21 +390,7 @@ class controller:
 		try:
 			
 			self.actionbar.draw()
-			#draw the save button
-			drawbox([700, 5, 64, 32],self.world,(200,200,200),(175,175,175),self.save,text="save")
 			
-			#toggle labels drawing the text labels
-			if self.labelshowtext:	
-				drawbox([770, 5, 64, 32],self.world,(0,200,0),(0,175,0),self.togglelabeltext,text="toggle")
-			else:
-				drawbox([770, 5, 64, 32],self.world,(200,200,200),(175,175,175),self.togglelabeltext,text="toggle")
-				
-			#toggle labels drawing the % 
-			if self.labelshowpercent:	
-				drawbox([834, 5, 32, 32],self.world,(0,200,0),(0,175,0),self.togglelabelprecent,text="%")
-			else:
-				drawbox([834, 5, 32, 32],self.world,(200,200,200),(175,175,175),self.togglelabelprecent,text="%")
-			#self.edge.draw(self.img)
 		except Exception as e:
 			print(e)
 			#pass
@@ -448,12 +433,28 @@ class controller:
 				drawbox([10,52+i*32,64,32], self.world, (200,200,0), (175,175,0), None, text=str(self.imagelist[a]))
 		
 		
-		
+		#draw the main image
 		try:
 			_,_,_ = self.img.shape 
 		except:
 			return
 		self.world.screen.blit(cvimage_to_pygame(self.img), (self.x, self.y))
+		#draw the save button
+		drawbox([700, 5, 64, 32],self.world,(200,200,200),(175,175,175),self.save,text="save")
+		
+		#toggle labels drawing the text labels
+		if self.labelshowtext:	
+			drawbox([770, 5, 64, 32],self.world,(0,200,0),(0,175,0),self.togglelabeltext,text="toggle")
+		else:
+			drawbox([770, 5, 64, 32],self.world,(200,200,200),(175,175,175),self.togglelabeltext,text="toggle")
+			
+		#toggle labels drawing the % 
+		if self.labelshowpercent:	
+			drawbox([834, 5, 32, 32],self.world,(0,200,0),(0,175,0),self.togglelabelprecent,text="%")
+		else:
+			drawbox([834, 5, 32, 32],self.world,(200,200,200),(175,175,175),self.togglelabelprecent,text="%")
+		#self.edge.draw(self.img)
+		
 		#select box
 		if self.selecting:
 			pygame.draw.rect(self.world.screen, (0,255,0), self.selectbox, 3)

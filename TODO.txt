@@ -1,7 +1,6 @@
 -find areas
-	-divide the areas into different parts
-	-different names for each area
-
+	-find defects in those areas
+	
 
 
 -add sliders for accuracy? 

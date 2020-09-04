@@ -69,11 +69,11 @@ class label:
 						self.controller.deletelabel(self)
 						del self
 				
-	def draw(self):
+	def draw(self,thickness=3):
 		x = self.x + self.controller.x
 		y = self.y + self.controller.y
 		box = [x, y, self.w, self.h]
-		pygame.draw.rect(self.world.screen, self.color, box, 3)	
+		pygame.draw.rect(self.world.screen, self.color, box, thickness)	
 		
 		if self.controller.labelshowtext:
 			if self.accuracy!=100 and self.controller.labelshowpercent:
